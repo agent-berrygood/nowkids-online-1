@@ -8,15 +8,15 @@ import AttendanceTable from './AttendanceTable';
 import { Student, AttendanceRecord, AttendanceStatus } from '@/types';
 
 interface AttendanceFormProps {
-    grades: number[];
+    grades: string[];
     classes: number[];
     students: Student[];
     attendance: Record<string, AttendanceRecord>;
-    onGradeChange: (grade: number) => void;
+    onGradeChange: (grade: string) => void;
     onClassChange: (classNum: number) => void;
     onStatusChange: (studentId: string, newStatus: AttendanceStatus) => void;
     onSubmit: () => void;
-    selectedGrade: number;
+    selectedGrade: string;
     selectedClass: number;
 }
 

@@ -5,7 +5,7 @@ import { Student, AttendanceRecord, AttendanceStatus } from '@/types';
 import { api } from '@/lib/api';
 import { MOCK_STUDENTS, MOCK_ATTENDANCE, delay } from '@/lib/mock';
 
-export function useAttendance(grade: number, classNum: number, date: string) {
+export function useAttendance(grade: string, classNum: number, date: string) {
     const [students, setStudents] = useState<Student[]>([]);
     const [attendance, setAttendance] = useState<Record<string, AttendanceRecord>>({});
     const [loading, setLoading] = useState(true);
@@ -53,7 +53,7 @@ export function useAttendance(grade: number, classNum: number, date: string) {
     }, [fetchData]);
 
     const updateStatus = (studentId: string, newStatus: AttendanceStatus) => {
-        setAttendance((prev) => ({
+        setAttendance((prev: Record<string, AttendanceRecord>) => ({
             ...prev,
             [studentId]: {
                 id: prev[studentId]?.id || `new-${Date.now()}`,
@@ -67,7 +67,7 @@ export function useAttendance(grade: number, classNum: number, date: string) {
 
     const saveAttendance = async () => {
         try {
-            const records = Object.values(attendance);
+            const records = Object.values(attendance) as AttendanceRecord[];
             await api.submitAttendance({ date, records });
             alert('저장되었습니다.');
         } catch (e) {

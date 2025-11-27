@@ -5,13 +5,13 @@ import { Student, AttendanceRecord, ApiResponse } from '@/types';
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzoadB8ckhGS7tN5z5rumsKwC1TU7mdjlEVclcPsokXMaPYR9PkkOCpoUES4x7Ug3eD/exec';
 
 interface GetStudentsParams {
-    grade: number;
+    grade: string;
     classNum: number;
 }
 
 interface GetAttendanceParams {
     date: string;
-    grade: number;
+    grade: string;
     classNum: number;
 }
 
@@ -88,9 +88,9 @@ class ApiClient {
         return this.fetch<boolean>({ action: 'submitAttendance' }, 'POST', params);
     }
 
-    async getGradeClassList(): Promise<{ grades: number[]; classes: number[] }> {
+    async getGradeClassList(): Promise<{ grades: string[]; classes: number[] }> {
         // StudentDB에서 유니크한 학년/반 목록을 반환하는 API
-        return this.fetch<{ grades: number[]; classes: number[] }>({ action: 'getGradeClassList' });
+        return this.fetch<{ grades: string[]; classes: number[] }>({ action: 'getGradeClassList' });
     }
 }
 

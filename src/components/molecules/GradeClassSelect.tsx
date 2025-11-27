@@ -12,11 +12,11 @@ export interface GradeClassOption {
 }
 
 interface GradeClassSelectProps {
-    grades: number[];
+    grades: string[];
     classes: number[];
-    selectedGrade: number;
+    selectedGrade: string;
     selectedClass: number;
-    onGradeChange: (grade: number) => void;
+    onGradeChange: (grade: string) => void;
     onClassChange: (classNum: number) => void;
 }
 
@@ -28,8 +28,8 @@ export default function GradeClassSelect({
     onGradeChange,
     onClassChange,
 }: GradeClassSelectProps) {
-    const handleGradeChange = (event: SelectChangeEvent<number>) => {
-        onGradeChange(Number(event.target.value));
+    const handleGradeChange = (event: SelectChangeEvent<string>) => {
+        onGradeChange(event.target.value);
     };
 
     const handleClassChange = (event: SelectChangeEvent<number>) => {
@@ -49,7 +49,7 @@ export default function GradeClassSelect({
                 >
                     {grades.map((grade) => (
                         <MenuItem key={grade} value={grade}>
-                            {grade}학년
+                            {grade}
                         </MenuItem>
                     ))}
                 </Select>

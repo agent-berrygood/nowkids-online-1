@@ -3,7 +3,7 @@ export type StudentStatus = '재학' | '휴학' | '전학';
 
 export interface Student {
     id: string;
-    grade: number;
+    grade: string;
     classNum: number;
     number: number;
     name: string;
@@ -37,6 +37,6 @@ export interface ApiResponse<T> {
 }
 
 export interface GradeClassOption {
-    grade: number;
+    grade: string;
     classNum: number;
 }

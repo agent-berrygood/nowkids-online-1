@@ -14,7 +14,7 @@ import { useGrades } from '@/hooks/useGrades';
 
 export default function HomePage() {
     const [date] = useState(new Date().toISOString().split('T')[0]);
-    const [selectedGrade, setSelectedGrade] = useState(1);
+    const [selectedGrade, setSelectedGrade] = useState('');
     const [selectedClass, setSelectedClass] = useState(1);
 
     const { grades, classes, loading: gradesLoading, error: gradesError } = useGrades();
