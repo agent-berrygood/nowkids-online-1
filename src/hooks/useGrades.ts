@@ -19,7 +19,8 @@ export function useGrades() {
                 setClasses(data.classes);
             } catch (err) {
                 console.error('Failed to fetch grade/class list:', err);
-                setError('학년/반 목록을 불러오는데 실패했습니다.');
+                // 디버깅을 위해 상세 에러 메시지 표시
+                setError(`목록 로딩 실패: ${err instanceof Error ? err.message : String(err)}`);
                 // Fallback: 기본값 설정
                 setGrades([1, 2, 3]);
                 setClasses([1, 2, 3, 4, 5]);
