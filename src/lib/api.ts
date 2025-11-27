@@ -39,16 +39,20 @@ class ApiClient {
 
         const url = `${this.baseUrl}?${queryString}`;
 
+        const headers: Record<string, string> = {};
+
+        // Google Apps Script는 OPTIONS(Preflight) 요청을 제대로 처리하지 못하는 경우가 많음
+        // GET 요청은 헤더 없이, POST 요청은 text/plain으로 보내 Preflight를 방지함
+        if (method === 'POST') {
+            headers['Content-Type'] = 'text/plain;charset=utf-8';
+        }
+
         const options: RequestInit = {
             method,
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
         };
 
         if (method === 'POST' && body) {
-            // Google Apps Script는 POST 요청을 text/plain으로 보내야 CORS 문제를 피하기 쉬운 경우가 있음
-            // 하지만 표준 JSON 전송을 시도하고, 필요시 수정
             options.body = JSON.stringify(body);
         }
 
