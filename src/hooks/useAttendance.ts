@@ -27,11 +27,19 @@ export function useAttendance(grade: string, classNum: number, date: string) {
                 // 만약 GAS가 업데이트되지 않았다면 중복 문제가 여전할 수 있으나, 
                 // 프론트엔드에서 임의로 인덱스를 붙이면 저장 시 매칭이 안되는 문제가 발생함.
                 // 따라서 백엔드 업데이트를 필수로 가정하고 API 데이터를 신뢰함.
-                const studentsWithIds = studentsData.map(s => ({
-                    ...s,
-                    // 혹시라도 ID가 없으면 임시 생성 (화면 표시용)
-                    id: s.id || `${grade}-${classNum}-${s.number}-${s.name}-${Math.random().toString(36).substring(2, 7)}`
-                }));
+                // GAS에서 ID를 생성해서 보내주므로(행 인덱스 포함), 프론트엔드에서는 그대로 사용합니다.
+                // 단, GAS 배포가 안되었거나 구버전일 경우 ID가 "undefined" 문자열로 올 수 있음.
+                // 이 경우 중복 및 UI 오류(체크박스 연동)가 발생하므로 강제로 프론트엔드에서 고유 ID를 생성함.
+                const studentsWithIds = studentsData.map((s, index) => {
+                    const hasValidId = s.id && s.id !== 'undefined' && s.id.trim() !== '';
+                    // 인덱스 기반으로 고유 ID 생성 (백엔드 로직과 유사하게 맞춤)
+                    const fallbackId = `${grade}-${classNum}-${s.number}-${s.name}-${index}`;
+
+                    return {
+                        ...s,
+                        id: hasValidId ? s.id : fallbackId
+                    };
+                });
 
                 setStudents(studentsWithIds);
                 const attendanceMap = attendanceData.reduce((acc, record) => {
