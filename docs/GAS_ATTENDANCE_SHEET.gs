@@ -31,6 +31,7 @@ function createAttendanceView() {
   
   // Set headers at Row 4
   const headerRange = sheet.getRange(4, 1, 1, allHeaders.length);
+  headerRange.setNumberFormat('@'); // Force Plain Text to prevent Date conversion
   headerRange.setValues([allHeaders]);
   headerRange.setFontWeight('bold');
   headerRange.setBackground('#e0e0e0');
@@ -141,7 +142,7 @@ function createAttendanceView() {
   // Formula: =COUNTIFS(AttendanceDB!$B:$B, $A5, AttendanceDB!$D:$D, F$4) > 0
   
   const checkboxRange = sheet.getRange(startRow, 6, numRows, sundays.length);
-  const formulaR1C1 = `=COUNTIFS(AttendanceDB!$C:$C, $A5, AttendanceDB!$E:$E, F$4) > 0`; 
+  // Formula: =COUNTIFS(AttendanceDB!$B:$B, $A5, AttendanceDB!$D:$D, F$4) > 0 
   // Wait, check AttendanceDB column indices in `submitAttendance`?
   // In `submitAttendance`:
   // appendRow([id, studentId, studentName, date, status, timestamp])
