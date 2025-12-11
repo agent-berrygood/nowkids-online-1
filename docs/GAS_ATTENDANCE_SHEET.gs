@@ -143,15 +143,30 @@ function getStudentList(ss) {
   if (data.length <= 1) return [];
   
   const headers = data[0];
-  const gIdx = headers.indexOf('Grade');
-  const cIdx = headers.indexOf('Class');
-  const nIdx = headers.indexOf('Number');
-  const naIdx = headers.indexOf('Name');
+  
+  // Helper to find column index by English or Korean name
+  const getIdx = (eng, kor) => {
+    let idx = headers.indexOf(eng);
+    if (idx === -1 && kor) idx = headers.indexOf(kor);
+    return idx;
+  };
+  
+  const gIdx = getIdx('Grade', '학년');
+  const cIdx = getIdx('Class', '반');
+  const nIdx = getIdx('Number', '번호');
+  const naIdx = getIdx('Name', '이름');
+
+  // If critical columns are missing, show error
+  if (gIdx === -1 || cIdx === -1 || nIdx === -1) {
+    Browser.msgBox('StudentDB의 헤더(Grade/학년, Class/반, Number/번호)를 찾을 수 없습니다.');
+    return [];
+  }
   
   const list = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     // ID Logic: Grade_Class_Number_RowIndex
+    // Ensure we use the exact row index 'i' to match Backend API logic
     const id = `${row[gIdx]}_${row[cIdx]}_${row[nIdx]}_${i}`;
     list.push({
       id: id,
