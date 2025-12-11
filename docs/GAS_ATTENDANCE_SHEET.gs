@@ -106,10 +106,10 @@ function createAttendanceView() {
   // Formula Logic:
   // Match Student Name (Col C) -> AttendanceDB Col C (StudentName)
   // Match Date (Header Row 4) -> AttendanceDB Col D (Date)
-  // Match Status "출석" -> AttendanceDB Col E (Status)
-  // Formula: =COUNTIFS(AttendanceDB!$C:$C, $C5, AttendanceDB!$D:$D, E$4, AttendanceDB!$E:$E, "출석") > 0
+  // Match Status TRUE -> AttendanceDB Col E (Status)
+  // Formula: =COUNTIFS(AttendanceDB!$C:$C, $C5, AttendanceDB!$D:$D, E$4, AttendanceDB!$E:$E, TRUE) > 0
   
-  checkboxRange.setFormula(`=COUNTIFS(AttendanceDB!$C:$C, $C5, AttendanceDB!$D:$D, E$4, AttendanceDB!$E:$E, "출석") > 0`);
+  checkboxRange.setFormula(`=COUNTIFS(AttendanceDB!$C:$C, $C5, AttendanceDB!$D:$D, E$4, AttendanceDB!$E:$E, TRUE) > 0`);
   checkboxRange.insertCheckboxes();
   
   // 6. Formatting
