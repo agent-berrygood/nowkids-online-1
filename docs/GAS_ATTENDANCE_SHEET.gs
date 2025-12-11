@@ -35,6 +35,33 @@ function createAttendanceView() {
   headerRange.setValues([allHeaders]);
   headerRange.setFontWeight('bold').setBackground('#e0e0e0').setHorizontalAlignment('center');
   
+  // Add Summary Statistics in Rows 1-3
+  
+  // Row 1: 재적 (Total Enrollment)
+  sheet.getRange('A1').setValue('재적');
+  sheet.getRange('A2').setFormula('=COUNTA(C5:C)'); // Count names from row 5 down
+  
+  // Row 2: 재적 대비 출석율 (Attendance Rate vs Enrollment)
+  sheet.getRange('D2').setValue('재적 대비 출석율');
+  
+  // Row 3: 출석현황 (Attendance Status)
+  sheet.getRange('D3').setValue('출석현황');
+  
+  // Add formulas for each date column (E onwards)
+  const lastColLetter = getColumnLetter(allHeaders.length);
+  
+  // E2 onwards: Attendance Rate (TRUE count / Total Students)
+  for (let col = 5; col <= allHeaders.length; col++) {
+    const colLetter = getColumnLetter(col);
+    sheet.getRange(2, col).setFormula(`=IFERROR(COUNTIF(${colLetter}5:${colLetter}, TRUE) / $A$2, 0)`).setNumberFormat('0%');
+  }
+  
+  // E3 onwards: Attendance Count (TRUE count)
+  for (let col = 5; col <= allHeaders.length; col++) {
+    const colLetter = getColumnLetter(col);
+    sheet.getRange(3, col).setFormula(`=COUNTIF(${colLetter}5:${colLetter}, TRUE)`);
+  }
+  
   // Freeze panes
   sheet.setFrozenRows(4);
   sheet.setFrozenColumns(4);
