@@ -30,9 +30,6 @@ export default function StudentRow({ student, currentStatus, onStatusChange }: S
             </TableCell>
             <TableCell sx={{ width: 150 }}>
                 <TypographyAtom variant="body1">{student.name}</TypographyAtom>
-                <TypographyAtom variant="caption" color="text.secondary">
-                    {student.gender === 'M' ? '남' : '여'}
-                </TypographyAtom>
             </TableCell>
             <TableCell align="center">
                 <Checkbox
