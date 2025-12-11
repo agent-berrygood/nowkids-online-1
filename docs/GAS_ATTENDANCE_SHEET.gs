@@ -1,5 +1,5 @@
 // Google Apps Script Code for Generating Attendance Sheet
-// 2025.12.11 Created
+// 2025.12.11 Updated (Plain Text Headers + Status Check + Full Restoration)
 
 /**
  * Creates or updates the AttendanceView sheet.
@@ -26,31 +26,89 @@ function createAttendanceView() {
   const sundays = getExtendedSundays();
   
   // 2. Setup Headers
-  const fixedHeaders = ['Grade', 'Class', 'Name', 'Attendance Rate'];
+  // We need ID (hidden) + Grade + Class + Name + Rate + Dates
+  const fixedHeaders = ['ID', 'Grade', 'Class', 'Name', 'Attendance Rate'];
   const allHeaders = fixedHeaders.concat(sundays);
   
   // Set headers at Row 4
   const headerRange = sheet.getRange(4, 1, 1, allHeaders.length);
   headerRange.setNumberFormat('@'); // Force Plain Text to match DB string dates
-  
-  // Use simple values (strings), no Date objects
   headerRange.setValues([allHeaders]);
-  headerRange.setFontWeight('bold');
-  headerRange.setBackground('#e0e0e0');
-  headerRange.setHorizontalAlignment('center');
   
-  // ... (Lines 39-168)
+  // Style Headers (Skip ID column which is index 1, but we hide it later. 
+  // Let's style visible headers from Col 2)
+  sheet.getRange(4, 2, 1, allHeaders.length - 1).setFontWeight('bold').setBackground('#e0e0e0').setHorizontalAlignment('center');
   
-  // Logic to adjust references across range:
+  // Freeze panes
+  sheet.setFrozenRows(4);
+  sheet.setFrozenColumns(5); // Grade, Class, Name, Rate + (Hidden ID)
+  
+  // 3. Fetch Students from StudentDB
+  const students = getStudentList(ss);
+  
+  if (students.length === 0) {
+    Browser.msgBox('StudentDB에 학생 데이터가 없습니다.');
+    return;
+  }
+  
+  // Sort Students: Grade > Class > Number (or Name)
+  students.sort((a, b) => {
+    if (String(a.grade) !== String(b.grade)) return String(a.grade).localeCompare(String(b.grade));
+    if (Number(a.classNum) !== Number(b.classNum)) return Number(a.classNum) - Number(b.classNum);
+    return Number(a.number) - Number(b.number);
+  });
+  
+  // 4. Prepare Data Rows
+  const startRow = 5;
+  const numRows = students.length;
+  
+  // Write Data: ID, Grade, Class, Name
+  const dataRows = students.map(s => [s.id, s.grade, s.classNum, s.name]);
+  sheet.getRange(startRow, 1, numRows, 4).setValues(dataRows);
+  
+  // Hide ID Column (Col 1)
+  sheet.hideColumns(1);
+  
+  // 5. Apply Formulas
+  
+  // (1) Attendance Rate Formula (Column E - Rate)
+  // ID=A, Grade=B, Class=C, Name=D, Rate=E (Col 5)
+  // Dates start at F (Col 6)
+  
+  const lastColLetter = getColumnLetter(allHeaders.length);
+  // Date Range for today check: F4 : LastCol 4
+  const headerDateRange = `$F$4:$${lastColLetter}$4`;
+  
+  for (let i = 0; i < numRows; i++) {
+    const r = startRow + i;
+    // Count Checked boxes (TRUE) / Count Sundays Passed (<= Today)
+    const rateFormula = `=IFERROR(COUNTIF(F${r}:${lastColLetter}${r}, TRUE) / COUNTIFS(${headerDateRange}, "<="&TEXT(TODAY(), "yyyy-mm-dd")), 0)`;
+    sheet.getRange(r, 5).setFormula(rateFormula).setNumberFormat('0%');
+  }
+  
+  // (2) Checkbox Formulas (Auto-check from AttendanceDB)
+  // Range: F5 to LastRow LastCol
+  const checkboxRange = sheet.getRange(startRow, 6, numRows, sundays.length);
+  
+  // Formula Logic:
+  // Match Student ID (in Col A, Hidden) -> AttendanceDB Col B
+  // Match Date (Header Row 4) -> AttendanceDB Col D
+  // Match Status "출석" -> AttendanceDB Col E
+  // Formula: =COUNTIFS(AttendanceDB!$B:$B, $A5, AttendanceDB!$D:$D, F$4, AttendanceDB!$E:$E, "출석") > 0
+  
+  // Note: We use TEXT(F$4) if headers are true dates, but we forced plain text. 
+  // If headers are text YYYY-MM-DD and DB is text YYYY-MM-DD, direct compare works.
+  
   checkboxRange.setFormula(`=COUNTIFS(AttendanceDB!$B:$B, $A5, AttendanceDB!$D:$D, F$4, AttendanceDB!$E:$E, "출석") > 0`);
+  checkboxRange.insertCheckboxes();
   
   // 6. Formatting
-  sheet.setColumnWidth(1, 5); // ID (Hidden)
+  sheet.setColumnWidth(1, 5);  // ID (Hidden)
   sheet.setColumnWidth(2, 60); // Grade
   sheet.setColumnWidth(3, 50); // Class
   sheet.setColumnWidth(4, 80); // Name
   sheet.setColumnWidth(5, 60); // Rate
-  for (let c = 6; c <= realHeaders.length; c++) {
+  for (let c = 6; c <= allHeaders.length; c++) {
     sheet.setColumnWidth(c, 30);
   }
 }
@@ -58,12 +116,10 @@ function createAttendanceView() {
 function getExtendedSundays() {
   const dates = [];
   // From Dec 2025 to Dec 2026
-  // Start: 2025-12-01
-  const start = new Date(2025, 11, 1); // Month is 0-indexed: 11 = Dec
+  const start = new Date(2025, 11, 1); 
   const end = new Date(2026, 11, 31);
   
   let current = new Date(start);
-  // Find first Sunday
   while (current.getDay() !== 0) {
     current.setDate(current.getDate() + 1);
   }
@@ -91,13 +147,11 @@ function getStudentList(ss) {
   const cIdx = headers.indexOf('Class');
   const nIdx = headers.indexOf('Number');
   const naIdx = headers.indexOf('Name');
-  // ID might not be in column? We generate it based on logic.
-  // Logic: `${grade}_${class}_${number}_${rowIndex}`.
   
   const list = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    // Use i as rowIndex match
+    // ID Logic: Grade_Class_Number_RowIndex
     const id = `${row[gIdx]}_${row[cIdx]}_${row[nIdx]}_${i}`;
     list.push({
       id: id,
