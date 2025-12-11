@@ -23,10 +23,16 @@ export function useAttendance(grade: string, classNum: number, date: string) {
                     api.getAttendance({ date, grade, classNum }),
                 ]);
 
-                const studentsWithIds = studentsData.map(s => ({
-                    ...s,
-                    id: s.id || `${grade}-${classNum}-${s.number}-${s.name}`
-                }));
+                const studentsWithIds = studentsData.map((s, index) => {
+                    // 고유 ID 생성을 위해 인덱스 활용 (이름/번호 중복 및 영속성 보장)
+                    // 랜덤 값은 새로고침 시 초기화되므로 출석 기록 매칭에 문제가 생김.
+                    // 따라서 순서 기반의 인덱스를 사용하여 ID를 생성함.
+                    const generatedId = `${grade}-${classNum}-${s.number || '0'}-${s.name || 'unknown'}-idx${index}`;
+                    return {
+                        ...s,
+                        id: s.id || generatedId,
+                    };
+                });
 
                 setStudents(studentsWithIds);
                 const attendanceMap = attendanceData.reduce((acc, record) => {
