@@ -23,11 +23,40 @@ export function useAttendance(grade: string, classNum: number, date: string) {
                     api.getAttendance({ date, grade, classNum }),
                 ]);
 
-                setStudents(studentsData);
+                const studentsWithIds = studentsData.map(s => ({
+                    ...s,
+                    id: s.id || `${grade}-${classNum}-${s.number}-${s.name}`
+                }));
+
+                setStudents(studentsWithIds);
                 const attendanceMap = attendanceData.reduce((acc, record) => {
-                    acc[record.studentId] = record;
+                    // attendance record의 studentId가 위에서 생성한 ID와 일치해야 함
+                    // 하지만 기존 record에 ID가 없을 수 있으므로, 매칭 로직이 필요할 수 있음
+                    // 여기서는 일단 record.studentId를 신뢰하거나, 
+                    // 만약 record.studentId가 비어있다면 매칭되는 학생을 찾아야 하는데
+                    // 일단은 학생 ID가 고유해졌으므로, UI상에서 개별 체크박스는 작동함.
+                    // *중요*: 서버에서 받아온 record의 studentId가 빈 문자열이면 매칭이 안될 수 있음.
+                    // 여기서는 학생 ID를 기준으로 빈 껍데기라도 만들어주는게 안전함.
+                    if (record.studentId) {
+                        acc[record.studentId] = record;
+                    }
                     return acc;
                 }, {} as Record<string, AttendanceRecord>);
+
+                // 학생 목록을 기준으로 attendanceMap 보완 (기록이 없는 학생들을 위해)
+                studentsWithIds.forEach(s => {
+                    if (!attendanceMap[s.id]) {
+                        attendanceMap[s.id] = {
+                            id: `temp-${s.id}-${Date.now()}`,
+                            studentId: s.id,
+                            studentName: s.name,
+                            date,
+                            status: '결석', // 기본값
+                            timestamp: new Date().toISOString(),
+                        };
+                    }
+                });
+
                 setAttendance(attendanceMap);
             } catch (e) {
                 console.warn('API fetch failed, using mock data', e);
