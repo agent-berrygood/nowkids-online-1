@@ -57,7 +57,7 @@ export function useAttendance(grade: string, classNum: number, date: string) {
                 }, {} as Record<string, AttendanceRecord>);
 
                 // 학생 목록을 기준으로 attendanceMap 보완 (기록이 없는 학생들을 위해)
-                studentsWithIds.forEach(s => {
+                studentsWithIds.forEach((s: Student) => {
                     if (!attendanceMap[s.id]) {
                         attendanceMap[s.id] = {
                             id: `temp-${s.id}-${Date.now()}`,
@@ -95,7 +95,7 @@ export function useAttendance(grade: string, classNum: number, date: string) {
     }, [fetchData]);
 
     const updateStatus = (studentId: string, newStatus: AttendanceStatus) => {
-        const student = students.find(s => s.id === studentId);
+        const student = students.find((s: Student) => s.id === studentId);
         setAttendance((prev: Record<string, AttendanceRecord>) => ({
             ...prev,
             [studentId]: {
