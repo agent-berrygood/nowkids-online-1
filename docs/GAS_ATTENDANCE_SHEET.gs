@@ -193,3 +193,43 @@ function getColumnLetter(col) {
   }
   return letter;
 }
+
+/**
+ * StudentDB 시트 수정 시 자동으로 AttendanceView 갱신
+ * Simple Trigger - 별도 설치 없이 자동 동작
+ */
+function onEdit(e) {
+  try {
+    const sheet = e.source.getActiveSheet();
+    const sheetName = sheet.getName();
+    
+    // StudentDB 시트가 수정된 경우에만 실행
+    if (sheetName === 'StudentDB') {
+      createAttendanceView();
+    }
+  } catch (error) {
+    Logger.log('onEdit 오류: ' + error.toString());
+  }
+}
+
+/**
+ * 트리거 수동 설치 함수 (선택사항)
+ * Simple Trigger로 충분하지만, 필요시 Installable Trigger로 전환 가능
+ */
+function installTrigger() {
+  // 기존 onEdit 트리거 삭제
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'onEdit') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+  
+  // 새 트리거 생성
+  ScriptApp.newTrigger('onEdit')
+    .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
+    .onEdit()
+    .create();
+  
+  Browser.msgBox('트리거가 설치되었습니다.');
+}

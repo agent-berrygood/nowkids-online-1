@@ -359,3 +359,223 @@ function getColumnLetter(columnIndex) {
   }
   return letter;
 }
+
+/**
+ * StudentDB 시트 수정 시 자동으로 AttendanceView 갱신
+ * Simple Trigger - 별도 설치 없이 자동 동작
+ */
+function onEdit(e) {
+  try {
+    const sheet = e.source.getActiveSheet();
+    const sheetName = sheet.getName();
+    
+    // StudentDB 시트가 수정된 경우에만 실행
+    if (sheetName === 'StudentDB') {
+      createAttendanceView();
+    }
+  } catch (error) {
+    Logger.log('onEdit 오류: ' + error.toString());
+  }
+}
+
+/**
+ * AttendanceView 시트 생성/갱신 (GAS_ATTENDANCE_SHEET.gs의 createAttendanceView 함수를 복사)
+ * 이 함수는 APPS_SCRIPT_CODE.gs를 단독으로 사용할 때 필요합니다.
+ */
+function createAttendanceView() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetName = 'AttendanceView';
+  let sheet = ss.getSheetByName(sheetName);
+
+  // 기존 시트가 있으면 삭제
+  if (sheet) {
+    ss.deleteSheet(sheet);
+  }
+  
+  sheet = ss.insertSheet(sheetName);
+  
+  // 1. Setup Dates (Sundays from Dec 2025 to Dec 2026)
+  const sundays = getExtendedSundays();
+  
+  // 2. Setup Headers - Simple: Grade, Class, Name, Rate, Dates
+  const fixedHeaders = ['Grade', 'Class', 'Name', 'Attendance Rate'];
+  const allHeaders = fixedHeaders.concat(sundays);
+  
+  // Set headers at Row 4
+  // Fixed headers (Grade, Class, Name, Rate)
+  const fixedHeaderRange = sheet.getRange(4, 1, 1, fixedHeaders.length);
+  fixedHeaderRange.setValues([fixedHeaders]);
+  fixedHeaderRange.setFontWeight('bold').setBackground('#e0e0e0').setHorizontalAlignment('center');
+  
+  // Date headers (E4 onwards) - Display as "M/D", store as Date objects
+  const dateHeaderRange = sheet.getRange(4, 5, 1, sundays.length);
+  const dateObjects = sundays.map(d => new Date(d)); // Convert "2025-12-07" to Date
+  dateHeaderRange.setValues([dateObjects]);
+  dateHeaderRange.setNumberFormat('M/D'); // Display as "12/7"
+  dateHeaderRange.setFontWeight('bold').setBackground('#e0e0e0').setHorizontalAlignment('center');
+  
+  // Add Summary Statistics in Rows 1-3
+  
+  // Row 1: 재적 (Total Enrollment)
+  sheet.getRange('A1').setValue('재적');
+  sheet.getRange('A2').setFormula('=COUNTA(C5:C)'); // Count names from row 5 down
+  
+  // Row 2: 재적 대비 출석율 (Attendance Rate vs Enrollment)
+  sheet.getRange('D2').setValue('재적 대비 출석율');
+  
+  // Row 3: 출석현황 (Attendance Status)
+  sheet.getRange('D3').setValue('출석현황');
+  
+  // Add formulas for each date column (E onwards)
+  const lastColLetter = getColumnLetter(allHeaders.length);
+  
+  // E2 onwards: Attendance Rate (TRUE count / Total Students)
+  for (let col = 5; col <= allHeaders.length; col++) {
+    const colLetter = getColumnLetter(col);
+    sheet.getRange(2, col).setFormula(`=IFERROR(COUNTIF(${colLetter}5:${colLetter}, TRUE) / $A$2, 0)`).setNumberFormat('0%');
+  }
+  
+  // E3 onwards: Attendance Count (TRUE count)
+  for (let col = 5; col <= allHeaders.length; col++) {
+    const colLetter = getColumnLetter(col);
+    sheet.getRange(3, col).setFormula(`=COUNTIF(${colLetter}5:${colLetter}, TRUE)`);
+  }
+  
+  // Freeze panes
+  sheet.setFrozenRows(4);
+  sheet.setFrozenColumns(4);
+  
+  // 3. Fetch Students from StudentDB
+  const students = getStudentList(ss);
+  
+  if (students.length === 0) {
+    Browser.msgBox('StudentDB에 학생 데이터가 없습니다.');
+    return;
+  }
+  
+  // Sort Students: Grade > Class > Name
+  students.sort((a, b) => {
+    if (String(a.grade) !== String(b.grade)) return String(a.grade).localeCompare(String(b.grade));
+    if (Number(a.classNum) !== Number(b.classNum)) return Number(a.classNum) - Number(b.classNum);
+    return String(a.name).localeCompare(String(b.name));
+  });
+  
+  // 4. Write Student Data
+  const startRow = 5;
+  const numRows = students.length;
+  
+  const dataRows = students.map(s => [s.grade, s.classNum, s.name]);
+  sheet.getRange(startRow, 1, numRows, 3).setValues(dataRows);
+  
+  // 5. Apply Formulas
+  
+  // (1) Attendance Rate Formula (Column D)
+  const headerDateRange = `$E$4:$${lastColLetter}$4`;
+  
+  for (let i = 0; i < numRows; i++) {
+    const r = startRow + i;
+    const rateFormula = `=IFERROR(COUNTIF(E${r}:${lastColLetter}${r}, TRUE) / COUNTIFS(${headerDateRange}, "<="&TEXT(TODAY(), "yyyy-mm-dd")), 0)`;
+    sheet.getRange(r, 4).setFormula(rateFormula).setNumberFormat('0%');
+  }
+  
+  // (2) Checkbox Formulas - Name-Based Matching
+  // Range: E5 to LastRow LastCol
+  const checkboxRange = sheet.getRange(startRow, 5, numRows, sundays.length);
+  
+  // Formula Logic:
+  // Match Student Name (Col C) -> AttendanceDB Col C (StudentName)
+  // Match Date (Header Row 4) -> AttendanceDB Col D (Date)
+  // Match Status TRUE -> AttendanceDB Col E (Status)
+  // Formula: =COUNTIFS(AttendanceDB!$C:$C, $C5, AttendanceDB!$D:$D, E$4, AttendanceDB!$E:$E, TRUE) > 0
+  
+  checkboxRange.setFormula(`=COUNTIFS(AttendanceDB!$C:$C, $C5, AttendanceDB!$D:$D, E$4, AttendanceDB!$E:$E, TRUE) > 0`);
+  checkboxRange.insertCheckboxes();
+  
+  // 6. Formatting
+  sheet.setColumnWidth(1, 60); // Grade
+  sheet.setColumnWidth(2, 50); // Class
+  sheet.setColumnWidth(3, 80); // Name
+  sheet.setColumnWidth(4, 120); // Rate (Attendance Rate)
+  for (let c = 5; c <= allHeaders.length; c++) {
+    sheet.setColumnWidth(c, 40); // 날짜 컬럼들
+  }
+}
+
+function getExtendedSundays() {
+  const dates = [];
+  const start = new Date(2025, 11, 1); 
+  const end = new Date(2026, 11, 31);
+  
+  let current = new Date(start);
+  while (current.getDay() !== 0) {
+    current.setDate(current.getDate() + 1);
+  }
+  
+  while (current <= end) {
+    const y = current.getFullYear();
+    const m = String(current.getMonth() + 1).padStart(2, '0');
+    const d = String(current.getDate()).padStart(2, '0');
+    dates.push(`${y}-${m}-${d}`);
+    current.setDate(current.getDate() + 7);
+  }
+  return dates;
+}
+
+function getStudentList(ss) {
+  const sheet = ss.getSheetByName('StudentDB');
+  if (!sheet) return [];
+  
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+  
+  const headers = data[0];
+  
+  // Helper to find column index
+  const getIdx = (eng, kor) => {
+    let idx = headers.indexOf(eng);
+    if (idx === -1 && kor) idx = headers.indexOf(kor);
+    return idx;
+  };
+  
+  const gIdx = getIdx('Grade', '학년');
+  const cIdx = getIdx('Class', '반');
+  const naIdx = getIdx('Name', '이름');
+  
+  if (gIdx === -1 || cIdx === -1 || naIdx === -1) {
+    Browser.msgBox('필수 헤더(Grade/학년, Class/반, Name/이름)를 찾을 수 없습니다.\\n현재 헤더: ' + headers.join(', '));
+    return [];
+  }
+  
+  const list = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    list.push({
+      grade: row[gIdx],
+      classNum: row[cIdx],
+      name: row[naIdx]
+    });
+  }
+  return list;
+}
+
+/**
+ * 트리거 수동 설치 함수 (선택사항)
+ * Simple Trigger로 충분하지만, 필요시 Installable Trigger로 전환 가능
+ */
+function installTrigger() {
+  // 기존 onEdit 트리거 삭제
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'onEdit') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+  
+  // 새 트리거 생성
+  ScriptApp.newTrigger('onEdit')
+    .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
+    .onEdit()
+    .create();
+  
+  Browser.msgBox('트리거가 설치되었습니다.');
+}
