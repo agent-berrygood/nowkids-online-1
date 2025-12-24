@@ -33,11 +33,9 @@ function createAttendanceView() {
   fixedHeaderRange.setValues([fixedHeaders]);
   fixedHeaderRange.setFontWeight('bold').setBackground('#e0e0e0').setHorizontalAlignment('center');
   
-  // Date headers (E4 onwards) - Display as "M/D", store as Date objects
+  // Date headers (E4 onwards) - Store as String "yyyy-mm-dd" (matches AttendanceDB format)
   const dateHeaderRange = sheet.getRange(4, 5, 1, sundays.length);
-  const dateObjects = sundays.map(d => new Date(d)); // Convert "2025-12-07" to Date
-  dateHeaderRange.setValues([dateObjects]);
-  dateHeaderRange.setNumberFormat('M/D'); // Display as "12/7"
+  dateHeaderRange.setValues([sundays]); // sundays는 이미 "yyyy-mm-dd" 형식 문자열 배열
   dateHeaderRange.setFontWeight('bold').setBackground('#e0e0e0').setHorizontalAlignment('center');
   
   // Add Summary Statistics in Rows 1-3
