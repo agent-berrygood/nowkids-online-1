@@ -62,37 +62,6 @@ function getStudentList(ss) {
     if (idx === -1 && kor) idx = headers.indexOf(kor);
     return idx;
   };
-  
-  const gIdx = getIdx('Grade', '학년');
-  const cIdx = getIdx('Class', '반');
-  const naIdx = getIdx('Name', '이름');
-  
-  if (gIdx === -1 || cIdx === -1 || naIdx === -1) {
-    Browser.msgBox('필수 헤더(Grade/학년, Class/반, Name/이름)를 찾을 수 없습니다.\\n현재 헤더: ' + headers.join(', '));
-    return [];
-  }
-  
-  const list = [];
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    list.push({
-      grade: row[gIdx],
-      classNum: row[cIdx],
-      name: row[naIdx]
-    });
-  }
-  return list;
-}
-
-function getColumnLetter(col) {
-  let temp, letter = '';
-  while (col > 0) {
-    temp = (col - 1) % 26;
-    letter = String.fromCharCode(temp + 65) + letter;
-    col = (col - temp - 1) / 26;
-  }
-  return letter;
-}
 
 /**
  * StudentDB 시트 수정 시 자동으로 AttendanceView 갱신

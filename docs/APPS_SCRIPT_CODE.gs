@@ -459,14 +459,16 @@ function createAttendanceView() {
   // 5. Apply Formulas
   
   // (1) Attendance Rate Formula (Column D)
-  // Formula: (My Attendance Count) / (Count of Weeks where Daily Attendance > 0)
+  // Formula: (My Attendance Count) / (Total Weeks - Weeks with 0 Attendance)
+  // User Request: (출석일/전체주일-출석현황0인날의 수)
   const dailyCountRange = `$E$2:$${lastColLetter}$2`;
+  const headerDateRange = `$E$3:$${lastColLetter}$3`;
   
   for (let i = 0; i < numRows; i++) {
     const r = startRow + i;
     // 분자: 나의 출석일수 (COUNTIF(E{r}:LastCol{r}, TRUE))
-    // 분모: 출석현황(2행)이 0보다 큰 셀의 개수 (COUNTIF($E$2:$LastCol$2, ">0"))
-    const rateFormula = `=IFERROR(COUNTIF(E${r}:${lastColLetter}${r}, TRUE) / COUNTIF(${dailyCountRange}, ">0"), 0)`;
+    // 분모: 전체 주일 수(COUNTA(Headers)) - 출석현황이 0인 날의 수(COUNTIF(DailyCount, 0))
+    const rateFormula = `=IFERROR(COUNTIF(E${r}:${lastColLetter}${r}, TRUE) / (COUNTA(${headerDateRange}) - COUNTIF(${dailyCountRange}, 0)), 0)`;
     sheet.getRange(r, 4).setFormula(rateFormula).setNumberFormat('0%');
   }
   
