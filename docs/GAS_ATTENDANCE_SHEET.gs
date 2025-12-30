@@ -95,7 +95,7 @@ function createAttendanceView() {
   // 5. Apply Formulas
   
   // (1) Attendance Rate Formula (Column D)
-  const headerDateRange = `$E$4:$${lastColLetter}$4`;
+  const headerDateRange = `$E$3:$${lastColLetter}$3`;
   
   for (let i = 0; i < numRows; i++) {
     const r = startRow + i;
@@ -128,7 +128,7 @@ function createAttendanceView() {
 
 function getExtendedSundays() {
   const dates = [];
-  const start = new Date(2025, 11, 1); 
+  const start = new Date(2025, 12, 1); 
   const end = new Date(2026, 11, 31);
   
   let current = new Date(start);

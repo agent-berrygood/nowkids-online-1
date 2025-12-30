@@ -411,6 +411,7 @@ function createAttendanceView() {
   const dateHeaderRange = sheet.getRange(4, 5, 1, sundays.length);
   dateHeaderRange.setValues([sundays]); // sundays는 이미 "yyyy-mm-dd" 형식 문자열 배열
   dateHeaderRange.setFontWeight('bold').setBackground('#e0e0e0').setHorizontalAlignment('center');
+  dateHeaderRange.setNumberFormat('mm/dd'); // 표시 형식을 "01/04" 같은 형식으로 변경
   
   // Add Summary Statistics in Rows 1-3
   
@@ -468,7 +469,7 @@ function createAttendanceView() {
   // 5. Apply Formulas
   
   // (1) Attendance Rate Formula (Column D)
-  const headerDateRange = `$E$4:$${lastColLetter}$4`;
+  const headerDateRange = `$E$3:$${lastColLetter}$3`;
   
   for (let i = 0; i < numRows; i++) {
     const r = startRow + i;
