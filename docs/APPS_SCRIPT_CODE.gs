@@ -401,47 +401,37 @@ function createAttendanceView() {
   const fixedHeaders = ['Grade', 'Class', 'Name', 'Attendance Rate'];
   const allHeaders = fixedHeaders.concat(sundays);
   
-  // Set headers at Row 4
-  // Fixed headers (Grade, Class, Name, Rate)
-  const fixedHeaderRange = sheet.getRange(4, 1, 1, fixedHeaders.length);
+  // Set headers at Row 3
+  const fixedHeaderRange = sheet.getRange(3, 1, 1, fixedHeaders.length);
   fixedHeaderRange.setValues([fixedHeaders]);
   fixedHeaderRange.setFontWeight('bold').setBackground('#e0e0e0').setHorizontalAlignment('center');
   
-  // Date headers (E4 onwards) - Store as String "yyyy-mm-dd" (matches AttendanceDB format)
-  const dateHeaderRange = sheet.getRange(4, 5, 1, sundays.length);
-  dateHeaderRange.setValues([sundays]); // sundays는 이미 "yyyy-mm-dd" 형식 문자열 배열
+  // Date headers (E3 onwards)
+  const dateHeaderRange = sheet.getRange(3, 5, 1, sundays.length);
+  dateHeaderRange.setValues([sundays]); 
   dateHeaderRange.setFontWeight('bold').setBackground('#e0e0e0').setHorizontalAlignment('center');
-  dateHeaderRange.setNumberFormat('mm/dd'); // 표시 형식을 "01/04" 같은 형식으로 변경
+  dateHeaderRange.setNumberFormat('mm/dd');
   
-  // Add Summary Statistics in Rows 1-3
+  // Add Summary Statistics in Rows 1-2
   
   // Row 1: 재적 (Total Enrollment)
   sheet.getRange('A1').setValue('재적');
-  sheet.getRange('A2').setFormula('=COUNTA(C5:C)'); // Count names from row 5 down
+  sheet.getRange('A2').setFormula('=COUNTA(C4:C)'); // Count names from row 4 down
   
-  // Row 2: 재적 대비 출석율 (Attendance Rate vs Enrollment)
-  sheet.getRange('D2').setValue('재적 대비 출석율');
+  // Row 2: 출석현황 (Daily Attendance Count) - Moved from Row 3 to Row 2
+  sheet.getRange('D2').setValue('출석현황');
   
-  // Row 3: 출석현황 (Attendance Status)
-  sheet.getRange('D3').setValue('출석현황');
-  
-  // Add formulas for each date column (E onwards)
+  // Add formulas for each date column (E onwards) at Row 2
   const lastColLetter = getColumnLetter(allHeaders.length);
   
-  // E2 onwards: Attendance Rate (TRUE count / Total Students)
+  // E2 onwards: Daily Attendance Count (TRUE count)
   for (let col = 5; col <= allHeaders.length; col++) {
     const colLetter = getColumnLetter(col);
-    sheet.getRange(2, col).setFormula(`=IFERROR(COUNTIF(${colLetter}5:${colLetter}, TRUE) / $A$2, 0)`).setNumberFormat('0%');
-  }
-  
-  // E3 onwards: Attendance Count (TRUE count)
-  for (let col = 5; col <= allHeaders.length; col++) {
-    const colLetter = getColumnLetter(col);
-    sheet.getRange(3, col).setFormula(`=COUNTIF(${colLetter}5:${colLetter}, TRUE)`);
+    sheet.getRange(2, col).setFormula(`=COUNTIF(${colLetter}4:${colLetter}, TRUE)`);
   }
   
   // Freeze panes
-  sheet.setFrozenRows(4);
+  sheet.setFrozenRows(3);
   sheet.setFrozenColumns(4);
   
   // 3. Fetch Students from StudentDB
@@ -460,7 +450,7 @@ function createAttendanceView() {
   });
   
   // 4. Write Student Data
-  const startRow = 5;
+  const startRow = 4;
   const numRows = students.length;
   
   const dataRows = students.map(s => [s.grade, s.classNum, s.name]);
@@ -469,25 +459,27 @@ function createAttendanceView() {
   // 5. Apply Formulas
   
   // (1) Attendance Rate Formula (Column D)
-  const headerDateRange = `$E$3:$${lastColLetter}$3`;
+  // Formula: (My Attendance Count) / (Count of Weeks where Daily Attendance > 0)
+  const dailyCountRange = `$E$2:$${lastColLetter}$2`;
   
   for (let i = 0; i < numRows; i++) {
     const r = startRow + i;
-    const rateFormula = `=IFERROR(COUNTIF(E${r}:${lastColLetter}${r}, TRUE) / COUNTIFS(${headerDateRange}, "<="&TEXT(TODAY(), "yyyy-mm-dd")), 0)`;
+    // 분자: 나의 출석일수 (COUNTIF(E{r}:LastCol{r}, TRUE))
+    // 분모: 출석현황(2행)이 0보다 큰 셀의 개수 (COUNTIF($E$2:$LastCol$2, ">0"))
+    const rateFormula = `=IFERROR(COUNTIF(E${r}:${lastColLetter}${r}, TRUE) / COUNTIF(${dailyCountRange}, ">0"), 0)`;
     sheet.getRange(r, 4).setFormula(rateFormula).setNumberFormat('0%');
   }
   
   // (2) Checkbox Formulas - Name-Based Matching
-  // Range: E5 to LastRow LastCol
+  // Range: E4 to LastRow LastCol
   const checkboxRange = sheet.getRange(startRow, 5, numRows, sundays.length);
   
   // Formula Logic:
   // Match Student Name (Col C) -> AttendanceDB Col C (StudentName)
-  // Match Date (Header Row 4) -> AttendanceDB Col D (Date)
+  // Match Date (Header Row 3) -> AttendanceDB Col D (Date)
   // Match Status TRUE -> AttendanceDB Col E (Status)
-  // Formula: =COUNTIFS(AttendanceDB!$C:$C, $C5, AttendanceDB!$D:$D, E$4, AttendanceDB!$E:$E, TRUE) > 0
   
-  checkboxRange.setFormula(`=COUNTIFS(AttendanceDB!$C:$C, $C5, AttendanceDB!$D:$D, E$4, AttendanceDB!$E:$E, TRUE) > 0`);
+  checkboxRange.setFormula(`=COUNTIFS(AttendanceDB!$C:$C, $C4, AttendanceDB!$D:$D, E$3, AttendanceDB!$E:$E, TRUE) > 0`);
   checkboxRange.insertCheckboxes();
   
   // 6. Formatting
