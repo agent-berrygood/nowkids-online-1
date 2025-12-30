@@ -20,7 +20,7 @@ export default function StudentRow({ student, currentStatus, onStatusChange }: S
 
     return (
         <TableRow hover>
-            <TableCell align="center" sx={{ width: 80 }}>
+            <TableCell align="center" sx={{ width: 80, display: { xs: 'none', sm: 'table-cell' } }}>
                 <TypographyAtom variant="body1" fontWeight="bold">
                     {student.number}
                 </TypographyAtom>
