@@ -414,15 +414,23 @@ function createAttendanceView() {
   
   // Add Summary Statistics in Rows 1-2
   
-  // Row 1: 재적 (Total Enrollment)
+  // Row 1: 재적 (Total Enrollment) & 재적 대비 출석율 (Attendance Rate vs Enrollment)
   sheet.getRange('A1').setValue('재적');
   sheet.getRange('A2').setFormula('=COUNTA(C4:C)'); // Count names from row 4 down
+  
+  sheet.getRange('D1').setValue('재적 대비 출석율');
   
   // Row 2: 출석현황 (Daily Attendance Count) - Moved from Row 3 to Row 2
   sheet.getRange('D2').setValue('출석현황');
   
-  // Add formulas for each date column (E onwards) at Row 2
+  // Add formulas for each date column (E onwards)
   const lastColLetter = getColumnLetter(allHeaders.length);
+  
+  // E1 onwards: Attendance Rate vs Enrollment (Daily Count / Total Enrollment)
+  for (let col = 5; col <= allHeaders.length; col++) {
+    const colLetter = getColumnLetter(col);
+    sheet.getRange(1, col).setFormula(`=IFERROR(${colLetter}2 / $A$2, 0)`).setNumberFormat('0%');
+  }
   
   // E2 onwards: Daily Attendance Count (TRUE count)
   for (let col = 5; col <= allHeaders.length; col++) {
